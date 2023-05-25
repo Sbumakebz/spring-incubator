@@ -1,20 +1,22 @@
 package entelect.training.incubator.spring.booking.controller;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import entelect.training.incubator.spring.booking.model.Booking;
+import entelect.training.incubator.spring.booking.model.Customer;
+import entelect.training.incubator.spring.booking.model.Flight;
 import entelect.training.incubator.spring.booking.rewards.client.RewardsClient;
 import entelect.training.incubator.spring.booking.service.BookingsService;
-import entelect.training.incubator.spring.customer.model.Customer;
-import entelect.training.incubator.spring.flight.model.Flight;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
+import org.springframework.jms.core.JmsTemplate;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
-import java.util.Arrays;
 import java.util.List;
 
 @RestController
@@ -36,13 +38,16 @@ public class BookingsController {
     @Autowired
     RestTemplate restTemplate;
 
+    @Autowired
+    JmsTemplate jmsTemplate;
+
     public BookingsController(BookingsService bookingsService) {
         this.bookingsService = bookingsService;
     }
 
     @PostMapping("/")
-    public ResponseEntity<?> createCustomer(@RequestBody Booking booking) {
-        LOGGER.info("Processing customer creation request for customer={}", booking);
+    public ResponseEntity<?> createBooking(@RequestBody Booking booking) throws JsonProcessingException {
+        LOGGER.info("Processing booking creation request for customer={}", booking);
 
         final Booking savedBooking = bookingsService.makeBooking(booking);
 
@@ -50,6 +55,16 @@ public class BookingsController {
         Flight flight = restTemplate.getForEntity("http://localhost:" + flightsServiceUrl + savedBooking.getFlightId(), Flight.class).getBody();
 
         rewardsClient.sendRewards(customer.getPassportNumber(), new BigDecimal(flight.getSeatCost()));
+
+        ObjectMapper objectMapper = new ObjectMapper();
+        BookingMessage bookingMessage = new BookingMessage();
+        bookingMessage.setPhoneNumber(customer.getPhoneNumber());
+        bookingMessage.setMessage(String.format("Molo Air: Confirming flight %s booked for %s on %s.",
+                flight.getFlightNumber(), customer.getFirstName() + " " + customer.getLastName(),
+                flight.getDepartureTime()));
+        objectMapper.writeValueAsString(bookingMessage);
+
+        jmsTemplate.convertAndSend("ENTELECT.INCUBATOR.SMS", objectMapper.writeValueAsString(bookingMessage));
 
         LOGGER.trace("Booking created");
         return new ResponseEntity<>(savedBooking, HttpStatus.CREATED);
@@ -70,7 +85,7 @@ public class BookingsController {
     }
 
     @PostMapping("/search")
-    public ResponseEntity<?> searchCustomers(@RequestBody Booking bookingRequest) {
+    public ResponseEntity<?> searchBookings(@RequestBody Booking bookingRequest) {
         LOGGER.info("Processing bookings search request for request {}", bookingRequest);
         List<Booking> bookings = null;
 
@@ -85,5 +100,22 @@ public class BookingsController {
 
         LOGGER.trace("Bookings not found");
         return ResponseEntity.notFound().build();
+    }
+
+    class BookingMessage {
+        private String phoneNumber;
+        private String message;
+        public String getPhoneNumber() {
+            return phoneNumber;
+        }
+        public void setPhoneNumber(String phoneNumber) {
+            this.phoneNumber = phoneNumber;
+        }
+        public String getMessage() {
+            return message;
+        }
+        public void setMessage(String message) {
+            this.message = message;
+        }
     }
 }

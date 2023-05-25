@@ -1,6 +1,6 @@
 package entelect.training.incubator.spring.booking.rewards.client;
 
-import entelect.training.incubator.spring.loyalty.ws.model.CaptureRewardsRequest;
+import entelect.training.incubator.spring.booking.model.CaptureRewardsRequest;
 import org.springframework.ws.client.core.support.WebServiceGatewaySupport;
 
 import java.math.BigDecimal;

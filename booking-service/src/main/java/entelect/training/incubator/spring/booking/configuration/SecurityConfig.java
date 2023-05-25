@@ -1,4 +1,4 @@
-package entelect.training.incubator.spring.flight.config;
+package entelect.training.incubator.spring.booking.configuration;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -38,9 +38,8 @@ public class SecurityConfig {
     SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http.csrf().disable() // !!! Disclaimer: NEVER DISABLE CSRF IN PRODUCTION !!!
                 .authorizeHttpRequests()
-                .requestMatchers(HttpMethod.GET, "/flights/**").permitAll()
-                .requestMatchers(HttpMethod.POST, "/flights/**").hasAnyRole("SYSTEM", "ADMIN")
-                .requestMatchers(HttpMethod.GET, "/flights/specials/**").hasAnyRole("LOYALTY_USER", "ADMIN")
+                .requestMatchers(HttpMethod.GET, "/bookings/**").hasAnyRole("USER", "ADMIN")
+                .requestMatchers(HttpMethod.POST, "/bookings/**").hasAnyRole("USER", "ADMIN")
                 .anyRequest().authenticated()
                 .and()
                 .httpBasic();
