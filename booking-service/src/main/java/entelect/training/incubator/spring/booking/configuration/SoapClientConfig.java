@@ -17,7 +17,7 @@ public class SoapClientConfig {
     @Bean
     public RewardsClient rewardsClient(Jaxb2Marshaller jaxb2Marshaller) {
         RewardsClient rewardsClient = new RewardsClient();
-        rewardsClient.setDefaultUri("http://localhost:8208/ws");
+        rewardsClient.setDefaultUri("http://localhost:8208/ws/rewards.wsdl");
         rewardsClient.setMarshaller(jaxb2Marshaller);
         rewardsClient.setUnmarshaller(jaxb2Marshaller);
         return rewardsClient;
